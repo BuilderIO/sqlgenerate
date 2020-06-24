@@ -1,0 +1,50 @@
+{
+  "name": "@builder.io/sqlgenerate",
+  "description": "Generates SQL from a JSON AST.",
+  "homepage": "https://github.com/jdrew1303/sqlgenerate",
+  "main": "dist/sqlgenerate.js",
+  "version": "1.2.5",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "maintainers": [
+    {
+      "name": "James Drew",
+      "email": "j.drew1303@gmail.com",
+      "web": "https://www.linkedin.com/in/jdrew1303"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jdrew1303/sqlgenerate.git"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.10.3",
+    "@babel/core": "^7.10.3",
+    "@babel/preset-env": "^7.10.3",
+    "@babel/register": "^7.10.3",
+    "chai": "^2.1.1",
+    "glob": "^7.1.0",
+    "gulp": "^3.8.10",
+    "gulp-bump": "^0.2.2",
+    "gulp-filter": "^2.0.0",
+    "gulp-git": "^1.0.1",
+    "gulp-tag-version": "^1.2.1",
+    "jshint": "^2.5.6",
+    "lodash": "^4.16.4",
+    "mocha": "^2.1.0",
+    "sqlite-parser": "1.0.1"
+  },
+  "dependencies": {
+    "babel-polyfill": "^6.16.0",
+    "ramda": "^0.22.1"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "babel sqlgenerate.js --out-dir dist",
+    "test": "npm run-script lint && npm run-script unit-test",
+    "lint": "jshint sqlgenerate.js",
+    "unit-test": "mocha --compilers js:babel-register",
+    "dev-ci": "mocha --compilers js:babel-register --watch"
+  }
+}
