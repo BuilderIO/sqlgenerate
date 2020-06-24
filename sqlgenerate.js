@@ -575,6 +575,7 @@ var Generator = {
 };
 
 module.exports = {
-  version: require("./package.json").version,
+  // This runs from the ./dist dir, so up a directory
+  version: require("../package.json").version,
   generate: (n) => Generator[n.type][n.variant](n),
 };
