@@ -449,6 +449,13 @@ var Generator = {
       const constraint = recurser(n.constraint);
       return `${INDENT}INNER JOIN (${source})${sourceAlias}${LINE_END}${constraint}`;
     },
+    "full outer join": (n) => {
+      const recurser = recurse(Generator);
+      const source = recurser(n.source);
+      const sourceAlias = n.source.alias ? ` AS ${n.source.alias}` : "";
+      const constraint = recurser(n.constraint);
+      return `${INDENT}FULL OUTER JOIN (${source})${sourceAlias}${LINE_END}${constraint}`;
+    },
     "left outer join": (n) => {
       const recurser = recurse(Generator);
       const source = recurser(n.source);
