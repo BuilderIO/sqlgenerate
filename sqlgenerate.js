@@ -542,6 +542,7 @@ var Generator = {
     blob: datatype,
     double: datatype,
     int8: datatype,
+    int64: datatype,
     text: datatype,
     tinyint: datatype,
     smallint: datatype,
