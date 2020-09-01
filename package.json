@@ -3,7 +3,7 @@
   "description": "Generates SQL from a JSON AST.",
   "homepage": "https://github.com/jdrew1303/sqlgenerate",
   "main": "dist/sqlgenerate.js",
-  "version": "1.2.7",
+  "version": "1.2.8-0",
   "engines": {
     "node": ">=0.10.0"
   },
@@ -44,7 +44,7 @@
     "build": "babel sqlgenerate.js --out-dir dist",
     "test": "npm run-script lint && npm run-script unit-test",
     "lint": "jshint sqlgenerate.js",
-    "unit-test": "mocha --compilers js:babel-register",
-    "dev-ci": "mocha --compilers js:babel-register --watch"
+    "unit-test": "mocha --require @babel/register",
+    "dev-ci": "mocha --require @babel/register --watch"
   }
 }

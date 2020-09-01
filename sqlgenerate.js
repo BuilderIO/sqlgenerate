@@ -1,5 +1,5 @@
 // Needed to allow its use in older versions of Node and Browsers.
-import "babel-polyfill";
+import 'babel-polyfill';
 import {
   map,
   join,
@@ -16,23 +16,23 @@ import {
   __,
   pluck,
   contains,
-} from "ramda";
+} from 'ramda';
 
-const INDENT = "\t";
-const LINE_END = "\n";
+const INDENT = '\t';
+const LINE_END = '\n';
 
 // This allows calling a function recursivly based on node type. Some of the
 // nodes have non-standard types and so we need to modify how we call the
 // Generator.
 const recurse = curry((Generator, n) => {
   switch (n.type) {
-    case "function":
-      return Generator["function"](n);
-    case "module":
+    case 'function':
+      return Generator['function'](n);
+    case 'module':
       return Generator.module(n);
-    case "assignment":
+    case 'assignment':
       return Generator.assignment(n);
-    case "event":
+    case 'event':
       return Generator.event(n);
     default:
       return Generator[n.type][n.variant](n);
@@ -41,47 +41,41 @@ const recurse = curry((Generator, n) => {
 
 const mapr = compose(map, recurse);
 
-const datatype = (n) => n.variant;
-const returnNewLine = join("\n");
-const joinList = join(", ");
-const terminateStatements = map(concat(__, ";"));
-const containsSelect = (s) => s.indexOf("SELECT") !== -1;
-const isOfFormat = (n) => compose(equals(n), prop("format"));
-const escapeTextLiteral = (s) => s.replace(/'/g, "''");
+const datatype = n => n.variant;
+const returnNewLine = join('\n');
+const joinList = join(', ');
+const terminateStatements = map(concat(__, ';'));
+const containsSelect = s => s.indexOf('SELECT') !== -1;
+const isOfFormat = n => compose(equals(n), prop('format'));
+const escapeTextLiteral = s => s.replace(/'/g, `''`);
 
 var Generator = {
-  assignment: (n) => {
+  assignment: n => {
     const recurser = recurse(Generator);
     const target = recurser(n.target);
     const value = recurser(n.value);
     return `${target} = ${value}`;
   },
   statement: {
-    list: (n) => {
+    list: n => {
       const recourseOverList = mapr(Generator);
-      const statements = compose(
-        returnNewLine,
-        terminateStatements,
-        recourseOverList
-      );
+      const statements = compose(returnNewLine, terminateStatements, recourseOverList);
       return statements(n.statement);
     },
-    select: (n) => {
+    select: n => {
       const recurser = recurse(Generator);
       const recourseList = mapr(Generator);
       const argsList = compose(joinList, recourseList);
 
-      var str = [""];
+      var str = [''];
       if (n.with) {
         const withS = recourseList(n.with);
-        const isRecursive = (n) =>
-          isArrayLike(n)
-            ? compose(contains("recursive"), pluck("variant"))(n)
-            : F;
-        const w = isRecursive(n.with) ? "WITH RECURSIVE" : "WITH";
+        const isRecursive = n =>
+          isArrayLike(n) ? compose(contains('recursive'), pluck('variant'))(n) : F;
+        const w = isRecursive(n.with) ? 'WITH RECURSIVE' : 'WITH';
         str.push(`${w} ${withS}${LINE_END}`);
       }
-      str.push("SELECT ");
+      str.push('SELECT ');
       if (n.result) {
         const results = argsList(n.result);
         str.push(`${results}${LINE_END}`);
@@ -110,35 +104,33 @@ var Generator = {
         const limit = recurser(n.limit);
         str.push(`${INDENT}${limit}`);
       }
-      return str.join("");
+      return str.join('');
     },
-    compound: (n) => {
+    compound: n => {
       const recourseList = mapr(Generator);
       const statement = recurse(Generator)(n.statement);
-      const compound = recourseList(n.compound).join("");
-      const order = n.order
-        ? `${INDENT}ORDER BY ${recourseList(n.order)}${LINE_END}`
-        : "";
+      const compound = recourseList(n.compound).join('');
+      const order = n.order ? `${INDENT}ORDER BY ${recourseList(n.order)}${LINE_END}` : '';
       return `${statement}${compound} ${order}`;
     },
-    create: (n) => {
+    create: n => {
       const recurser = recurse(Generator);
-      const isCreateIndex = isOfFormat("index");
-      const isCreateTable = isOfFormat("table");
-      const isCreateView = isOfFormat("view");
-      const isCreateVirtual = isOfFormat("virtual");
-      const isCreateTrigger = isOfFormat("trigger");
+      const isCreateIndex = isOfFormat('index');
+      const isCreateTable = isOfFormat('table');
+      const isCreateView = isOfFormat('view');
+      const isCreateVirtual = isOfFormat('virtual');
+      const isCreateTrigger = isOfFormat('trigger');
 
       if (isCreateTrigger(n)) {
         const m = mapr(Generator);
         const target = recurser(n.target);
-        const by = n.by ? `FOR EACH ${n.by}` : "";
+        const by = n.by ? `FOR EACH ${n.by}` : '';
         const event = recurser(n.event);
         const on = recurser(n.on);
-        const action = compose(join(";\n"), m)(n.action);
+        const action = compose(join(';\n'), m)(n.action);
         const when = recurser(n.when);
-        const temporary = !!n.temporary ? "TEMPORARY" : "";
-        const condition = n.condition ? m(n.condition) : "";
+        const temporary = !!n.temporary ? 'TEMPORARY' : '';
+        const condition = n.condition ? m(n.condition) : '';
         return `CREATE ${temporary} TRIGGER ${condition} ${target} ${event} ON ${on} ${by} WHEN ${when} BEGIN ${action}; END`;
       }
 
@@ -171,39 +163,33 @@ var Generator = {
         const defaultCreateSyntax = `CREATE TABLE ${tableName} (${LINE_END}${definitions}${LINE_END})`;
         const createTableFromSelect = `CREATE TABLE ${tableName} AS${LINE_END}${definitions}${LINE_END}`;
 
-        return containsSelect(definitions)
-          ? createTableFromSelect
-          : defaultCreateSyntax;
+        return containsSelect(definitions) ? createTableFromSelect : defaultCreateSyntax;
       }
       return ``;
     },
-    insert: (n) => {
+    insert: n => {
       const recurser = recurse(Generator);
       const into = recurser(n.into);
 
       // This is an insert into default values
-      if (n.result.variant === "default") {
+      if (n.result.variant === 'default') {
         return `INSERT INTO ${into}${LINE_END}DEFAULT VALUES`;
       }
       // This is an insert into select
-      if (n.result.variant === "select") {
+      if (n.result.variant === 'select') {
         const result = recurser(n.result);
         return `INSERT INTO ${into}${LINE_END}${result}`;
       }
       // Otherwise we build up the values to be inserted
-      const addBrackets = map((s) => `(${s})`);
-      const valuesList = compose(
-        join(`,${LINE_END}`),
-        addBrackets,
-        mapr(Generator)
-      );
+      const addBrackets = map(s => `(${s})`);
+      const valuesList = compose(join(`,${LINE_END}`), addBrackets, mapr(Generator));
       const result = valuesList(n.result);
       return `INSERT INTO ${into}${LINE_END}VALUES ${result}`;
     },
-    delete: (n) => {
+    delete: n => {
       const recurser = recurse(Generator);
 
-      var str = ["DELETE "];
+      var str = ['DELETE '];
 
       if (n.from) {
         const from = recurser(n.from);
@@ -218,16 +204,15 @@ var Generator = {
         const limit = recurser(n.limit);
         str.push(`${INDENT}${limit}`);
       }
-      return str.join("");
+      return str.join('');
     },
-    drop: (n) => {
+    drop: n => {
       const recurser = recurse(Generator);
-      const condition =
-        n.condition.length > 0 ? mapr(Generator)(n.condition) : "";
+      const condition = n.condition.length > 0 ? mapr(Generator)(n.condition) : '';
       const target = recurser(n.target);
       return `DROP ${n.format} ${condition} ${target}`;
     },
-    update: (n) => {
+    update: n => {
       const recurser = recurse(Generator);
       const into = recurser(n.into);
       const setS = mapr(Generator)(n.set);
@@ -243,12 +228,12 @@ var Generator = {
         str.push(`${INDENT}${limit}`);
       }
 
-      return str.join("");
+      return str.join('');
     },
-    transaction: (n) => {
-      const isOfActionType = (type) => (action) => action === type;
-      const isBegin = isOfActionType("begin");
-      const isRollback = isOfActionType("rollback");
+    transaction: n => {
+      const isOfActionType = type => action => action === type;
+      const isBegin = isOfActionType('begin');
+      const isRollback = isOfActionType('rollback');
 
       if (isBegin(n.action)) {
         return `${n.action} ${n.defer} TRANSACTION`;
@@ -258,23 +243,23 @@ var Generator = {
       }
       return `COMMIT`;
     },
-    release: (n) => {
+    release: n => {
       const recurser = recurse(Generator);
       const savepoint = recurser(n.target.savepoint);
       return `RELEASE SAVEPOINT ${savepoint}`;
     },
-    savepoint: (n) => {
+    savepoint: n => {
       const recurser = recurse(Generator);
       const savepoint = recurser(n.target.savepoint);
       return `SAVEPOINT ${savepoint}`;
     },
   },
   compound: {
-    union: (n) => {
+    union: n => {
       const statement = recurse(Generator)(n.statement);
       return `${toUpper(n.variant)}${LINE_END}${statement}`;
     },
-    get "union all"() {
+    get 'union all'() {
       return this.union;
     },
     get except() {
@@ -285,145 +270,143 @@ var Generator = {
     },
   },
   identifier: {
-    star: (n) => n.name,
-    table: (n) => {
-      const alias = n.alias ? `AS ${n.alias}` : "";
-      const index = n.index ? recurse(Generator)(n.index) : "";
+    star: n => n.name,
+    table: n => {
+      const alias = n.alias ? `AS ${n.alias}` : '';
+      const index = n.index ? recurse(Generator)(n.index) : '';
       return `\`${n.name}\` ${alias} ${index}`;
     },
-    index: (n) => `INDEXED BY ${n.name}`,
-    column: (n) => {
+    index: n => `INDEXED BY ${n.name}`,
+    column: n => {
       const recurser = recurse(Generator);
-      const alias = n.alias ? `AS \`${n.alias}\`` : "";
-      const index = n.index ? recurser(n.index) : "";
+      const alias = n.alias ? `AS \`${n.alias}\`` : '';
+      const index = n.index ? recurser(n.index) : '';
       return `\`${n.name}\` ${alias} ${index}`;
     },
-    function: (n) => n.name,
-    expression: (n) => {
+    function: n => n.name,
+    expression: n => {
       const m = mapr(Generator);
       return `\`${n.name}\`(${m(n.columns)})`;
     },
-    view: (n) => n.name,
-    savepoint: (n) => n.name,
-    trigger: (n) => `"${n.name}"`,
+    view: n => n.name,
+    savepoint: n => n.name,
+    trigger: n => `'${n.name}'`,
   },
   literal: {
-    text: (n) => `'${escapeTextLiteral(n.value)}'`,
-    decimal: (n) => `${n.value}`,
-    null: () => "NULL",
+    text: n => `'${escapeTextLiteral(n.value)}'`,
+    decimal: n => `${n.value}`,
+    null: () => 'NULL',
   },
   expression: {
-    operation: (n) => {
+    operation: n => {
       const recurser = recurse(Generator);
-      const isUnaryOperation = isOfFormat("unary");
+      const isUnaryOperation = isOfFormat('unary');
 
       if (isUnaryOperation(n)) {
         const expression = recurser(n.expression);
-        const operator = n.operator ? `${n.operator}` : "";
-        const alias = n.alias ? `AS [${n.alias}]` : "";
+        const operator = n.operator ? `${n.operator}` : '';
+        const alias = n.alias ? `AS [${n.alias}]` : '';
         return `${operator} ${expression} ${alias}`;
       }
 
-      const isBetween = (n) => n.operation === "between";
-      const isExpression = (n) => n.type === "expression";
+      const isBetween = n => n.operation === 'between';
+      const isExpression = n => n.type === 'expression';
 
-      const side = (s) => {
+      const side = s => {
         const sideOp = recurser(n[s]);
-        return !isBetween(n) && (isExpression(n[s]) || containsSelect(sideOp))
-          ? `(${sideOp})`
-          : sideOp;
+        return !isBetween(n) && (isExpression(n[s]) || containsSelect(sideOp)) ? `(${sideOp})` : sideOp;
       };
-      const left = side("left");
-      const right = side("right");
+      const left = side('left');
+      const right = side('right');
 
-      const alias = n.alias ? `AS \`${n.alias}\`` : "";
+      const alias = n.alias ? `AS \`${n.alias}\`` : '';
       return `${left} ${n.operation} ${right} ${alias}`;
     },
-    list: (n) => {
+    list: n => {
       const argsList = compose(joinList, mapr(Generator));
       return argsList(n.expression);
     },
-    order: (n) => {
+    order: n => {
       const recurser = recurse(Generator);
       const expression = recurser(n.expression);
       const direction = n.direction;
       return `${expression} ${toUpper(direction)}`;
     },
-    limit: (n) => {
+    limit: n => {
       const recurser = recurse(Generator);
       const limit = recurser(n.start);
-      const offset = n.offset ? `OFFSET ${recurser(n.offset)}` : "";
+      const offset = n.offset ? `OFFSET ${recurser(n.offset)}` : '';
       return `LIMIT ${limit}${LINE_END}${INDENT}${offset}`;
     },
-    cast: (n) => {
+    cast: n => {
       const recurser = recurse(Generator);
       const expression = recurser(n.expression);
       const as = recurser(n.as);
-      const alias = n.alias ? `AS [${n.alias}]` : "";
+      const alias = n.alias ? `AS [${n.alias}]` : '';
       return `CAST(${expression} AS ${as})${alias}`;
     },
-    common: (n) => {
+    common: n => {
       const recurser = recurse(Generator);
       const expression = recurser(n.expression);
       const target = recurser(n.target);
       return `${target} AS (${expression})`;
     },
-    case: (n) => {
+    case: n => {
       const recurser = recurse(Generator);
       const mapConditions = compose(join(LINE_END), mapr(Generator));
-      const discriminant = n.discriminant ? recurser(n.discriminant) : "";
+      const discriminant = n.discriminant ? recurser(n.discriminant) : '';
       const conditions = mapConditions(n.expression);
-      const alias = n.alias ? `AS [${n.alias}]` : "";
+      const alias = n.alias ? `AS [${n.alias}]` : '';
       return `CASE ${discriminant} ${conditions} END ${alias}`;
     },
-    recursive: (n) => {
+    recursive: n => {
       const recurser = recurse(Generator);
       const target = recurser(n.target);
       const expression = recurser(n.expression);
       return `${target} AS (${expression})`;
     },
-    exists: (n) => n.operator,
+    exists: n => n.operator,
   },
   condition: {
-    when: (n) => {
+    when: n => {
       const recurser = recurse(Generator);
       const when = recurser(n.condition);
       const then = recurser(n.consequent);
       return `WHEN ${when} THEN ${then}`;
     },
-    else: (n) => {
+    else: n => {
       const recurser = recurse(Generator);
       const elseS = recurser(n.consequent);
       return `ELSE ${elseS}`;
     },
-    if: (n) => {
+    if: n => {
       const recurser = recurse(Generator);
       const exists = recurser(n.condition);
       return `IF ${exists}`;
     },
   },
-  function: (n) => {
+  function: n => {
     const recurser = recurse(Generator);
     const name = toUpper(recurser(n.name));
     const args = recurser(n.args);
-    const alias = n.alias ? `AS \`${n.alias}\`` : "";
+    const alias = n.alias ? `AS \`${n.alias}\`` : '';
     return `${name}(${args}) ${alias}`;
   },
-  module: (n) => {
+  module: n => {
     const recurser = recurse(Generator);
     const args = recurser(n.args);
-    const alias = n.alias ? `AS \`${n.alias}\`` : "";
+    const alias = n.alias ? `AS \`${n.alias}\`` : '';
     return `${n.name}(${args}) ${alias}`;
   },
   event: ({ event, occurs, of }) => {
-    const processedOf = of ? `OF ${mapr(Generator)(of)}` : "";
+    const processedOf = of ? `OF ${mapr(Generator)(of)}` : '';
     return `${occurs} ${event} ${processedOf}`;
   },
   map: {
-    join: (n) => {
+    join: n => {
       const recurser = recurse(Generator);
       const source = recurser(n.source);
-      const sourceAlias = n.source.alias ? n.source.alias : "";
+      const sourceAlias = n.source.alias ? n.source.alias : '';
       const join = recurser(head(n.map));
 
       // Its a select subquery
@@ -436,41 +419,41 @@ var Generator = {
     },
   },
   join: {
-    join: (n) => {
+    join: n => {
       const recurser = recurse(Generator);
       const source = recurser(n.source);
       const constraint = recurser(n.constraint);
       return `${INDENT}JOIN ${source}${LINE_END}${constraint}`;
     },
-    "inner join": (n) => {
+    'inner join': n => {
       const recurser = recurse(Generator);
       const source = recurser(n.source);
-      const sourceAlias = n.source.alias ? ` AS ${n.source.alias}` : "";
+      const sourceAlias = n.source.alias ? ` AS ${n.source.alias}` : '';
       const constraint = recurser(n.constraint);
       return `${INDENT}INNER JOIN (${source})${sourceAlias}${LINE_END}${constraint}`;
     },
-    "full outer join": (n) => {
+    'full outer join': n => {
       const recurser = recurse(Generator);
       const source = recurser(n.source);
       const constraint = recurser(n.constraint);
       return `${INDENT}FULL OUTER JOIN ${source}${LINE_END}${constraint}`;
     },
-    "left outer join": (n) => {
+    'left outer join': n => {
       const recurser = recurse(Generator);
       const source = recurser(n.source);
       const constraint = recurser(n.constraint);
       return `${INDENT}LEFT OUTER JOIN ${source}${LINE_END}${constraint}`;
     },
-    "cross join": (n) => {
+    'cross join': n => {
       const recurser = recurse(Generator);
       const source = recurser(n.source);
       return `, ${source}`;
     },
   },
   constraint: {
-    join: (n) => {
-      const isFormatUsing = isOfFormat("using");
-      const isFormatOn = isOfFormat("on");
+    join: n => {
+      const isFormatUsing = isOfFormat('using');
+      const isFormatOn = isOfFormat('on');
 
       const recurser = recurse(Generator);
       if (isFormatOn(n)) {
@@ -481,44 +464,42 @@ var Generator = {
         const using = mapr(Generator)(n.using.columns);
         return `${INDENT}USING (${using})${LINE_END}`;
       }
-      return "";
+      return '';
     },
-    "primary key": () => `PRIMARY KEY`,
-    "not null": () => `NOT NULL`,
+    'primary key': () => `PRIMARY KEY`,
+    'not null': () => `NOT NULL`,
     unique: () => `UNIQUE`,
-    check: (n) => {
+    check: n => {
       const check = recurse(Generator)(n.expression);
       return `CHECK (${check})`;
     },
-    "foreign key": (n) => {
+    'foreign key': n => {
       const recurser = recurse(Generator);
       const ref = recurser(n.references);
       return `REFERENCES ${ref}`;
     },
-    null: () => "NULL",
+    null: () => 'NULL',
   },
   definition: {
-    column: (n) => {
+    column: n => {
       const recurser = recurse(Generator);
-      const datatype = isArrayLike(n.datatype)
-        ? mapr(Generator, n.datatype)
-        : recurser(n.datatype);
-      const constraintsList = compose(join(" "), map(recurser));
+      const datatype = isArrayLike(n.datatype) ? mapr(Generator, n.datatype) : recurser(n.datatype);
+      const constraintsList = compose(join(' '), map(recurser));
       const constraints = constraintsList(n.definition);
       return `${n.name} ${datatype} ${constraints}`;
     },
-    constraint: (n) => {
+    constraint: n => {
       const recurser = recurse(Generator);
 
-      const checkConstraint = (type) => (n) => {
+      const checkConstraint = type => n => {
         if (isEmpty(n)) {
           return F;
         }
-        const constraintType = compose(prop("variant"), head);
+        const constraintType = compose(prop('variant'), head);
         return equals(constraintType(n), type);
       };
-      const isForeignKey = checkConstraint("foreign key");
-      const isPrimaryKey = checkConstraint("primary key");
+      const isForeignKey = checkConstraint('foreign key');
+      const isPrimaryKey = checkConstraint('primary key');
 
       if (isForeignKey(n.definition)) {
         const childKey = recurser(head(n.columns));
@@ -527,7 +508,7 @@ var Generator = {
       }
       if (isPrimaryKey(n.definition)) {
         const field = recurser(head(n.columns));
-        const conflict = prop("conflict", head(n.definition));
+        const conflict = prop('conflict', head(n.definition));
         return `PRIMARY KEY (${field}) ON CONFLICT ${conflict}`;
       }
       return recurser(head(n.definition));
@@ -535,7 +516,7 @@ var Generator = {
   },
   datatype: {
     int: datatype,
-    varchar: (n) => {
+    varchar: n => {
       const arg = recurse(Generator)(n.args);
       return `${n.variant}(${arg})`;
     },
@@ -555,26 +536,26 @@ var Generator = {
     datetime: datatype,
     date: datatype,
     boolean: datatype,
-    decimal: (n) => {
+    decimal: n => {
       const arg = recurse(Generator)(n.args);
       return `${n.variant}(${arg})`;
     },
     numeric: datatype,
     real: datatype,
     float: datatype,
-    "double precision": datatype,
-    clob: (n) => {
+    'double precision': datatype,
+    clob: n => {
       const arg = recurse(Generator)(n.args);
       return `${n.variant}(${arg})`;
     },
     longtext: datatype,
     mediumtext: datatype,
     tinytext: datatype,
-    char: (n) => {
+    char: n => {
       const arg = recurse(Generator)(n.args);
       return `${n.variant}(${arg})`;
     },
-    nvarchar: (n) => {
+    nvarchar: n => {
       const arg = recurse(Generator)(n.args);
       return `${n.variant}(${arg})`;
     },
@@ -583,6 +564,6 @@ var Generator = {
 
 module.exports = {
   // This runs from the ./dist dir, so up a directory
-  version: require("../package.json").version,
-  generate: (n) => Generator[n.type][n.variant](n),
+  version: require('../package.json').version,
+  generate: n => Generator[n.type][n.variant](n),
 };
