@@ -44,7 +44,7 @@
     "build": "babel sqlgenerate.js --out-dir dist",
     "test": "npm run-script lint && npm run-script unit-test",
     "lint": "jshint sqlgenerate.js",
-    "unit-test": "mocha --compilers js:babel-register",
-    "dev-ci": "mocha --compilers js:babel-register --watch"
+    "unit-test": "mocha --require @babel/register",
+    "dev-ci": "mocha --require @babel/register --watch"
   }
 }
