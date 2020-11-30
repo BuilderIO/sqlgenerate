@@ -444,6 +444,12 @@ var Generator = {
       const constraint = recurser(n.constraint);
       return `${INDENT}LEFT OUTER JOIN ${source}${LINE_END}${constraint}`;
     },
+    'left join': n => {
+      const recurser = recurse(Generator);
+      const source = recurser(n.source);
+      const constraint = recurser(n.constraint);
+      return `${INDENT}LEFT JOIN ${source}${LINE_END}${constraint}`;
+    },
     'cross join': n => {
       const recurser = recurse(Generator);
       const source = recurser(n.source);
