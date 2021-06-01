@@ -76,6 +76,9 @@ var Generator = {
         str.push(`${w} ${withS}${LINE_END}`);
       }
       str.push('SELECT ');
+      if (n.distinct) {
+        str.push(`${INDENT}DISTINCT ${LINE_END}`);
+      }
       if (n.result) {
         const results = argsList(n.result);
         str.push(`${results}${LINE_END}`);
@@ -314,7 +317,9 @@ var Generator = {
 
       const side = s => {
         const sideOp = recurser(n[s]);
-        return !isBetween(n) && (isExpression(n[s]) || containsSelect(sideOp)) ? `(${sideOp})` : sideOp;
+        return !isBetween(n) && (isExpression(n[s]) || containsSelect(sideOp))
+          ? `(${sideOp})`
+          : sideOp;
       };
       const left = side('left');
       const right = side('right');
