@@ -12,5 +12,6 @@
   "strict": false,
   "trailing": true,
   "esversion": 6,
+  "laxbreak": true,
   "node": true
 }
